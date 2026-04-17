@@ -49,6 +49,8 @@ The Item Master module is responsible for managing all items used in the procure
   "item_category": "pharmacitucals",
   "uom": "Box"
 }
+
+
 {
   "id": "a1b2c3d4",
   "name": "Paracetamol 500mg",
