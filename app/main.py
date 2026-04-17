@@ -27,5 +27,11 @@ async def lifespan(app: FastAPI):
     
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(
+    tags=["Items"],
+    router=__import__("app.routes.item_routes", fromlist=["router"]).router
+)
+
+
 
 
