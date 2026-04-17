@@ -1,10 +1,10 @@
 # 📦 Item Master API Documentation
 
 # TODO
-- updated_at field in data model
-- created_by field in data model
-- status - enum (Draft, Approved, Rejected) in data model
-- Reason for rejection field in data model
+
+
+
+- Reason for rejection field in data model  -- doubt
 - System generated code for item creation (e.g., ITM-0001)
 - Sub delete API for items that are not used in any purchase orders
 

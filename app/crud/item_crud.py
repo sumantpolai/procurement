@@ -19,8 +19,12 @@ class ItemCRUD:
             name=item_data.name,
             item_type=item_data.item_type,
             item_category=item_data.item_category,
-            uom=item_data.uom
+            uom=item_data.uom,
+            created_by=item_data.created_by
         )
+        
+        if item_data.status is not None:
+            item.status = item_data.status
 
         self.db.add(item)
         self.db.commit()
@@ -87,6 +91,16 @@ class ItemCRUD:
 
         if item_data.uom is not None:
             item.uom = item_data.uom
+            
+        if item_data.status is not None:
+            item.status = item_data.status
+
+        # ✅ enforce rule
+        if item_data.status == "Rejected" and not item_data.rejection_reason:
+            raise ValueError("Rejection reason is required when status is Rejected")
+
+        if item_data.rejection_reason is not None:
+            item.rejection_reason = item_data.rejection_reason
 
         self.db.commit()
         self.db.refresh(item)

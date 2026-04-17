@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import uuid
 
 from app.database.db import Base
-from app.enums.item_enum import ItemType, ItemCategory 
+from app.enums.item_enum import ItemType, ItemCategory, ItemStatus
 
 
 class Item(Base):
@@ -17,12 +17,25 @@ class Item(Base):
     item_category = Column(SqlEnum(ItemCategory), nullable=False)
 
     uom = Column(String, nullable=False)
+    
+    created_by = Column(String, nullable=False)
+    status = Column(SqlEnum(ItemStatus), default=ItemStatus.DRAFT, nullable=False)
+    
+    rejection_reason = Column(String, nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False
     )
+    
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False
+    )
+    
 
     def __repr__(self):
         return f"<Item(id={self.id}, name='{self.name}')>"

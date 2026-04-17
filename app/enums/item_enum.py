@@ -12,3 +12,8 @@ class ItemCategory(str, Enum):
     PHARMACEUTICALS = "Pharmaceuticals"
     EQUIPMENT = "equipment"
     OTHER = "other"
+    
+class ItemStatus(str, Enum):
+    DRAFT = "Draft"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"

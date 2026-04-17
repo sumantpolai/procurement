@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
-from app.enums.item_enum import ItemType, ItemCategory
+from app.enums.item_enum import ItemStatus, ItemType, ItemCategory
 
 
 # -----------------------
@@ -14,6 +14,9 @@ class ItemCreate(BaseModel):
     item_type: ItemType
     item_category: ItemCategory
     uom: str
+    created_by: str
+    status: ItemStatus = ItemStatus.DRAFT
+    rejection_reason: Optional[str] = None
 
 
 # -----------------------
@@ -25,7 +28,11 @@ class ItemResponse(BaseModel):
     item_type: ItemType
     item_category: ItemCategory
     uom: str
+    status: ItemStatus
+    rejection_reason: Optional[str]
+    created_by: str 
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True   # for SQLAlchemy ORM
@@ -49,3 +56,5 @@ class ItemUpdate(BaseModel):
     item_type: Optional[ItemType] = None
     item_category: Optional[ItemCategory] = None
     uom: Optional[str] = None
+    status: Optional[ItemStatus] = None
+    rejection_reason: Optional[str] = None
