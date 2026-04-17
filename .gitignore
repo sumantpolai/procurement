@@ -1,0 +1,77 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+*.db
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# FastAPI specific
+*.env
+*.env.local
+
+# Uvicorn / Gunicorn
+*.pid
+*.sock
+
+# Alembic (optional)
+alembic/versions/*.pyc
+
+# MyPy
+.mypy_cache/
+
+# Pyright
+.pyright/
+
+# Ruff
+.ruff_cache/
+
+# Node (if frontend included)
+node_modules/
+
+# Docker (optional)
+docker-compose.override.yml
