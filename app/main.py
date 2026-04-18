@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from app.database.db import engine, Base
 from app.database.db import check_db_connection
 import logging
+from app.api.api import api_router
+from app.models import *
 
 
 logging.basicConfig(
@@ -26,6 +28,8 @@ async def lifespan(app: FastAPI):
     # Shutdown code
     
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(api_router, prefix="/api")
 
 
 
