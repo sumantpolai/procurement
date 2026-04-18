@@ -24,6 +24,7 @@ class ItemCreate(BaseModel):
 # -----------------------
 class ItemResponse(BaseModel):
     id: UUID
+    code: str
     name: str
     item_type: ItemType
     item_category: ItemCategory

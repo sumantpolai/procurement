@@ -3,6 +3,7 @@ from sqlalchemy import func
 from uuid import UUID
 from app.models.item_model import Item
 from app.schemas.item_schema import ItemCreate
+from app.utils.code_generator import generate_item_code
 
 
 class ItemCRUD:
@@ -14,8 +15,11 @@ class ItemCRUD:
     # Create Item
     # -----------------------
     def create_item(self, item_data: ItemCreate) -> Item:
+        
+        item_code = generate_item_code(self.db)
 
         item = Item(
+            code=item_code,
             name=item_data.name,
             item_type=item_data.item_type,
             item_category=item_data.item_category,

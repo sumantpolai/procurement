@@ -11,6 +11,7 @@ class Item(Base):
     __tablename__ = "items"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code = Column(String, unique=True, nullable=False, index=True)  # Auto-generated code like ITM-0001
     name = Column(String, nullable=False, index=True)
 
     item_type = Column(SqlEnum(ItemType), nullable=False)
