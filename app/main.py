@@ -5,8 +5,19 @@ from app.database.db import engine, Base
 from app.database.db import check_db_connection
 from app.routes import pr, po
 from app.core.logger import setup_logger
+import logging
+from app.api.api import api_router
+from app.models import *
 
-logger = setup_logger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+# logger = setup_logger(__name__)
 
 
 @asynccontextmanager
@@ -56,6 +67,8 @@ app.include_router(
     router=__import__("app.routes.item_routes", fromlist=["router"]).router
 )
 
+
+app.include_router(api_router, prefix="/api")
 
 
 
