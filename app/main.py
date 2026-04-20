@@ -51,5 +51,11 @@ async def root():
         "message": "Procurement Management System API is running"
     }
 
+app.include_router(
+    tags=["Items"],
+    router=__import__("app.routes.item_routes", fromlist=["router"]).router
+)
+
+
 
 

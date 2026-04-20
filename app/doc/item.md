@@ -1,5 +1,13 @@
 # 📦 Item Master API Documentation
 
+# TODO
+
+
+
+
+
+- Sub delete API for items that are not used in any purchase orders
+
 ## 1. Overview
 
 The Item Master module is responsible for managing all items used in the procurement system. It supports creation, retrieval, and search operations.
