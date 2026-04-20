@@ -118,8 +118,9 @@ def delete_item_api(
 
         return {"message": "Item deleted successfully"}
 
-    except HTTPException:
-        raise
+    # 🔴 Handle business rule error
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as e:
         raise HTTPException(

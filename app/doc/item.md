@@ -1,12 +1,6 @@
 # 📦 Item Master API Documentation
 
-# TODO
 
-
-
-
-
-- Sub delete API for items that are not used in any purchase orders
 
 ## 1. Overview
 

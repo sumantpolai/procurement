@@ -4,6 +4,8 @@ from uuid import UUID
 from app.models.item_model import Item
 from app.schemas.item_schema import ItemCreate
 from app.utils.code_generator import generate_item_code
+from app.models.purchase_order_model import PurchaseOrderItem
+from sqlalchemy.exc import IntegrityError
 
 
 class ItemCRUD:
@@ -14,28 +16,58 @@ class ItemCRUD:
     # -----------------------
     # Create Item
     # -----------------------
+    # def create_item(self, item_data: ItemCreate) -> Item:
+        
+    #     item_code = generate_item_code(self.db)
+
+    #     item = Item(
+    #         code=item_code,
+    #         name=item_data.name,
+    #         item_type=item_data.item_type,
+    #         item_category=item_data.item_category,
+    #         uom=item_data.uom,
+    #         created_by=item_data.created_by
+    #     )
+        
+    #     if item_data.status is not None:
+    #         item.status = item_data.status
+
+    #     self.db.add(item)
+    #     self.db.commit()
+    #     self.db.refresh(item)
+
+    #     return item
+
+    
+
     def create_item(self, item_data: ItemCreate) -> Item:
-        
-        item_code = generate_item_code(self.db)
 
-        item = Item(
-            code=item_code,
-            name=item_data.name,
-            item_type=item_data.item_type,
-            item_category=item_data.item_category,
-            uom=item_data.uom,
-            created_by=item_data.created_by
-        )
-        
-        if item_data.status is not None:
-            item.status = item_data.status
+        try:
+            item_code = generate_item_code(self.db)
 
-        self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
+            item = Item(
+                code=item_code,
+                name=item_data.name,
+                item_type=item_data.item_type,
+                item_category=item_data.item_category,
+                uom=item_data.uom,
+                created_by=item_data.created_by
+            )
 
-        return item
+            if item_data.status is not None:
+                item.status = item_data.status
 
+            self.db.add(item)
+            self.db.commit()
+            self.db.refresh(item)
+
+            return item
+
+        except IntegrityError:
+            self.db.rollback()
+            raise ValueError("Failed to generate unique item code. Try again.")
+    
+    
     # -----------------------
     # Get All Items
     # -----------------------
@@ -123,6 +155,16 @@ class ItemCRUD:
 
         if not item:
             return False
+        
+        # 🚫 Check if item used in purchase orders
+        is_used = self.db.query(PurchaseOrderItem).filter(
+        PurchaseOrderItem.item_id == item_id
+        ).first()
+
+        if is_used:
+            raise ValueError(
+            "Item cannot be deleted because it is used in a purchase order"
+            )
 
         self.db.delete(item)
         self.db.commit()
