@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
+from uuid import UUID
 
 from app.database.db import get_db
 from app.models.vendor import Vendor
@@ -27,6 +28,8 @@ def map_vendor(v):
         email=v.email,
         phone=v.phone,
         status=v.status,
+        pan_no=v.pan_no,
+        gst_no=v.gst_no,
         bank_details=BankDetails(
             bank_name=v.bank_name,
             account_number=v.account_number,
@@ -44,9 +47,15 @@ def create_vendor_api(vendor: VendorCreate, db: Session = Depends(get_db)):
     try:
         v = create_vendor(db, vendor)
         return map_vendor(v)
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Email already exists")
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=400, detail="Email already exists")
+        elif "pan_no" in error_msg:
+            raise HTTPException(status_code=400, detail="PAN number already exists")
+        else:
+            raise HTTPException(status_code=400, detail="Duplicate entry")
 
 
 # 🔹 GET ALL
@@ -88,7 +97,7 @@ def search_vendor_api(
 
 # 🔹 GET BY ID
 @router.get("/{vendor_id}", response_model=VendorResponse)
-def get_vendor_api(vendor_id: int, db: Session = Depends(get_db)):
+def get_vendor_api(vendor_id: UUID, db: Session = Depends(get_db)):
     vendor = get_vendor_by_id(db, vendor_id)
 
     if not vendor:
@@ -99,7 +108,7 @@ def get_vendor_api(vendor_id: int, db: Session = Depends(get_db)):
 
 # 🔹 UPDATE
 @router.put("/{vendor_id}", response_model=VendorResponse)
-def update_vendor_api(vendor_id: int, vendor: VendorUpdate, db: Session = Depends(get_db)):
+def update_vendor_api(vendor_id: UUID, vendor: VendorUpdate, db: Session = Depends(get_db)):
     updated = update_vendor(db, vendor_id, vendor)
 
     if not updated:
@@ -110,7 +119,7 @@ def update_vendor_api(vendor_id: int, vendor: VendorUpdate, db: Session = Depend
 
 # 🔹 DELETE (SOFT)
 @router.delete("/{vendor_id}")
-def delete_vendor_api(vendor_id: int, db: Session = Depends(get_db)):
+def delete_vendor_api(vendor_id: UUID, db: Session = Depends(get_db)):
     deleted = delete_vendor(db, vendor_id)
 
     if not deleted:
@@ -124,7 +133,7 @@ from app.models.vendor import VendorStatus
 
 @router.patch("/{vendor_id}/status")
 def update_status_api(
-    vendor_id: int,
+    vendor_id: UUID,
     status_data: VendorStatusUpdate,
     db: Session = Depends(get_db)
 ):

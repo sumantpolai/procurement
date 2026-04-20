@@ -36,6 +36,7 @@ class PurchaseOrder(Base):
     po_number = Column(String, unique=True, nullable=False, index=True)
     pr_id = Column(UUID(as_uuid=True), nullable=True)  # Reference to PR
     vendor_id = Column(UUID(as_uuid=True), nullable=False)
+    vendor_name = Column(String, nullable=True)  # Store vendor name for quick access
     store_id = Column(UUID(as_uuid=True), nullable=False)
     location_id = Column(UUID(as_uuid=True), nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=False)

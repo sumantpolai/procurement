@@ -15,7 +15,7 @@ class POItemCreate(BaseModel):
     sgst_percent: Decimal = Field(..., ge=0, description="SGST percentage")
     igst_percent: Decimal = Field(..., ge=0, description="IGST percentage")
     uom: str = Field(..., description="Unit of measurement")
-    hsn_code: str = Field(..., description="HSN code")
+    hsn_code: Optional[str] = Field(None, description="HSN code (optional)")
 
 
 class POItemResponse(BaseModel):
@@ -27,7 +27,7 @@ class POItemResponse(BaseModel):
     sgst_percent: Decimal
     igst_percent: Decimal
     uom: str
-    hsn_code: str
+    hsn_code: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -58,6 +58,7 @@ class POResponse(BaseModel):
     po_number: str
     pr_id: Optional[UUID]
     vendor_id: UUID
+    vendor_name: Optional[str] = None
     store_id: UUID
     location_id: UUID
     created_by: UUID
@@ -79,6 +80,7 @@ class POListItem(BaseModel):
     po_number: str
     pr_id: Optional[UUID]
     vendor_id: UUID
+    vendor_name: Optional[str] = None
     store_id: UUID
     po_type: POType
     po_date: date

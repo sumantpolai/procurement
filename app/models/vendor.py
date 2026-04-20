@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum
+from sqlalchemy import Column, String, DateTime, Boolean, Enum
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import enum
+import uuid
 
 from app.database.db import Base
 
@@ -14,11 +16,15 @@ class VendorStatus(str, enum.Enum):
 class Vendor(Base):
     __tablename__ = "vendors"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
 
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
     phone = Column(String, nullable=False)
+    
+    # Tax Details
+    pan_no = Column(String, nullable=False, unique=True, index=True)
+    gst_no = Column(String, nullable=True)
 
     # Bank Details
     bank_name = Column(String, nullable=False)

@@ -4,6 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 from decimal import Decimal
 from app.models.po import PurchaseOrder, POStatus
+from app.models.vendor import Vendor
 from app.schemas.po import POCreate
 import logging
 
@@ -48,6 +49,11 @@ def create_po(db: Session, po_data: POCreate) -> PurchaseOrder:
     try:
         logger.info(f"Creating PO for vendor: {po_data.vendor_id}")
         
+        # Validate vendor exists
+        vendor = db.query(Vendor).filter(Vendor.id == po_data.vendor_id).first()
+        if not vendor:
+            raise ValueError(f"Vendor with id {po_data.vendor_id} not found")
+        
         po_number = generate_po_number(db)
         
         items_data = [
@@ -71,6 +77,7 @@ def create_po(db: Session, po_data: POCreate) -> PurchaseOrder:
             po_number=po_number,
             pr_id=po_data.pr_id,
             vendor_id=po_data.vendor_id,
+            vendor_name=vendor.name,  # Store vendor name
             store_id=po_data.store_id,
             location_id=po_data.location_id,
             created_by=po_data.created_by,
@@ -89,6 +96,9 @@ def create_po(db: Session, po_data: POCreate) -> PurchaseOrder:
         logger.info(f"PO created successfully with number: {po_number}, ID: {new_po.id}")
         return new_po
         
+    except ValueError as e:
+        logger.error(f"Validation error while creating PO: {str(e)}")
+        raise
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error while creating PO: {str(e)}")

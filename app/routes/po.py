@@ -31,6 +31,12 @@ async def create_purchase_order(
         po = crud_po.create_po(db, po_data)
         logger.info(f"API: PO created successfully with ID: {po.id}")
         return po
+    except ValueError as e:
+        logger.error(f"API: Validation error - {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "VALIDATION_ERROR", "message": str(e)}
+        )
     except Exception as e:
         logger.error(f"API: Failed to create PO - {str(e)}")
         raise HTTPException(
@@ -114,6 +120,7 @@ async def get_all_purchase_orders(
                 po_number=po.po_number,
                 pr_id=po.pr_id,
                 vendor_id=po.vendor_id,
+                vendor_name=po.vendor_name,
                 store_id=po.store_id,
                 po_type=po.po_type,
                 po_date=po.po_date,

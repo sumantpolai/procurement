@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.db import engine, Base
 from app.database.db import check_db_connection
-from app.routes import pr, po
+from app.routes.pr import router as pr_router
+from app.routes.po import router as po_router
 from app.core.logger import setup_logger
 import logging
 from app.api.api import api_router
@@ -50,8 +51,8 @@ app.add_middleware(
 )
 
 # Include routes
-app.include_router(pr.router)
-app.include_router(po.router)
+app.include_router(pr_router)
+app.include_router(po_router)
 
 
 @app.get("/", tags=["Health"])
@@ -68,7 +69,7 @@ app.include_router(
 )
 
 
-app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
 
 
 
