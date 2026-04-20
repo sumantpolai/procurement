@@ -11,7 +11,7 @@ from app.schemas.item_schema import (
     ItemListResponse
 )
 
-router = APIRouter(prefix="/api/items", tags=["Items"])
+router = APIRouter(prefix="/items", tags=["Items"])
 
 
 # -----------------------

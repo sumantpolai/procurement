@@ -13,6 +13,8 @@ class PRItemCreate(BaseModel):
 class PRItemResponse(BaseModel):
     item_id: UUID
     quantity: int
+    item_name: Optional[str] = None
+    uom: Optional[str] = None
     
     class Config:
         from_attributes = True

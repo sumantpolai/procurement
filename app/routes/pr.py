@@ -34,6 +34,12 @@ async def create_purchase_request(
         pr = crud_pr.create_pr(db, pr_data)
         logger.info(f"API: PR created successfully with ID: {pr.id}")
         return pr
+    except ValueError as e:
+        logger.error(f"API: Validation error - {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "VALIDATION_ERROR", "message": str(e)}
+        )
     except Exception as e:
         logger.error(f"API: Failed to create PR - {str(e)}")
         raise HTTPException(
@@ -185,35 +191,58 @@ async def update_purchase_request_status(
 
 @router.get(
     "/search/{pr_number}",
-    response_model=PRResponse,
+    response_model=PRListResponse,
     status_code=status.HTTP_200_OK,
-    summary="Search Purchase Request by PR Number",
-    description="Search for a specific Purchase Request by its PR number (e.g., PR-001)"
+    summary="Search Purchase Requests by PR Number",
+    description="Search for Purchase Requests by PR number with partial matching (e.g., searching 'PR' returns PR-001, PR-002, etc.)"
 )
 async def search_purchase_request(
     pr_number: str,
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(get_db)
 ):
     """
-    Search Purchase Request by PR Number
+    Search Purchase Requests by PR Number with partial matching
     
-    - **pr_number**: PR number in format PR-XXX (e.g., PR-001, PR-002)
+    - **pr_number**: Search pattern (e.g., 'PR', '001', 'PR-0')
+    - **page**: Page number (default: 1)
+    - **limit**: Records per page (default: 10)
+    
+    Examples:
+    - Search 'PR' returns: PR-001, PR-002, PR-003, etc.
+    - Search '001' returns: PR-001
+    - Search 'item' returns: item-2, item-3, item-4
     """
     try:
-        logger.info(f"API: Search PR request received for number: {pr_number}")
-        pr = crud_pr.search_pr_by_number(db, pr_number)
+        logger.info(f"API: Search PR request received for pattern: {pr_number}")
+        prs = crud_pr.search_pr_by_number(db, pr_number)
         
-        if not pr:
-            logger.warning(f"API: PR not found with number - {pr_number}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"error": "PR_NOT_FOUND", "message": f"Purchase Request with number {pr_number} not found"}
+        if not prs:
+            logger.warning(f"API: No PRs found matching pattern - {pr_number}")
+            return PRListResponse(data=[], page=page, limit=limit, total=0)
+        
+        # Apply pagination
+        total = len(prs)
+        skip = (page - 1) * limit
+        prs_paginated = prs[skip:skip + limit]
+        
+        data = [
+            PRListItem(
+                id=pr.id,
+                pr_number=pr.pr_number,
+                requested_by=pr.requested_by,
+                status=pr.status,
+                items=pr.items,
+                created_at=pr.created_at,
+                updated_at=pr.updated_at
             )
+            for pr in prs_paginated
+        ]
         
-        logger.info(f"API: PR retrieved successfully: {pr_number}")
-        return pr
-    except HTTPException:
-        raise
+        logger.info(f"API: Found {total} PRs matching pattern '{pr_number}'")
+        return PRListResponse(data=data, page=page, limit=limit, total=total)
+        
     except Exception as e:
         logger.error(f"API: Failed to search PR - {str(e)}")
         raise HTTPException(

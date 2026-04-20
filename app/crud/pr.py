@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 from uuid import UUID
 from app.models.pr import PurchaseRequest, PRStatus
+from app.models.item_model import Item
 from app.schemas.pr import PRCreate
 import logging
 
@@ -38,14 +39,21 @@ def create_pr(db: Session, pr_data: PRCreate) -> PurchaseRequest:
         # Generate PR number
         pr_number = generate_pr_number(db)
         
-        # Convert items to dict format for JSON storage
-        items_data = [
-            {
+        # Convert items to dict format with item details from Item table
+        items_data = []
+        for item in pr_data.items:
+            # Fetch item details from Item table
+            item_details = db.query(Item).filter(Item.id == item.item_id).first()
+            
+            if not item_details:
+                raise ValueError(f"Item with id {item.item_id} not found in Item Master")
+            
+            items_data.append({
                 "item_id": str(item.item_id),
-                "quantity": item.quantity
-            }
-            for item in pr_data.items
-        ]
+                "quantity": item.quantity,
+                "item_name": item_details.name,
+                "uom": item_details.uom
+            })
         
         new_pr = PurchaseRequest(
             pr_number=pr_number,
@@ -61,6 +69,9 @@ def create_pr(db: Session, pr_data: PRCreate) -> PurchaseRequest:
         logger.info(f"PR created successfully with number: {pr_number}, ID: {new_pr.id}")
         return new_pr
         
+    except ValueError as e:
+        logger.error(f"Validation error while creating PR: {str(e)}")
+        raise
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error while creating PR: {str(e)}")
@@ -120,12 +131,14 @@ def update_pr_status(db: Session, pr_id: UUID, new_status: PRStatus) -> Optional
 
 
 
-def search_pr_by_number(db: Session, pr_number: str) -> Optional[PurchaseRequest]:
-    """Search PR by PR number"""
+def search_pr_by_number(db: Session, pr_number: str) -> List[PurchaseRequest]:
+    """Search PR by PR number with partial matching"""
     try:
-        logger.info(f"Searching PR with number: {pr_number}")
-        pr = db.query(PurchaseRequest).filter(PurchaseRequest.pr_number == pr_number).first()
-        return pr
+        logger.info(f"Searching PRs with pattern: {pr_number}")
+        prs = db.query(PurchaseRequest).filter(
+            PurchaseRequest.pr_number.ilike(f"%{pr_number}%")
+        ).all()
+        return prs
     except SQLAlchemyError as e:
         logger.error(f"Database error while searching PR: {str(e)}")
         raise
@@ -146,14 +159,21 @@ def update_pr(db: Session, pr_id: UUID, pr_data) -> Optional[PurchaseRequest]:
         if pr.status != PRStatus.DRAFT:
             raise ValueError(f"Cannot edit PR with status: {pr.status}. Only DRAFT PRs can be edited.")
         
-        # Convert items to dict format for JSON storage
-        items_data = [
-            {
+        # Convert items to dict format with item details from Item table
+        items_data = []
+        for item in pr_data.items:
+            # Fetch item details from Item table
+            item_details = db.query(Item).filter(Item.id == item.item_id).first()
+            
+            if not item_details:
+                raise ValueError(f"Item with id {item.item_id} not found in Item Master")
+            
+            items_data.append({
                 "item_id": str(item.item_id),
-                "quantity": item.quantity
-            }
-            for item in pr_data.items
-        ]
+                "quantity": item.quantity,
+                "item_name": item_details.name,
+                "uom": item_details.uom
+            })
         
         pr.items = items_data
         db.commit()
