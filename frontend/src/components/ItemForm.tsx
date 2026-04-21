@@ -47,6 +47,7 @@ export default function ItemForm({ initialData, onSubmit, isLoading }: ItemFormP
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label" htmlFor="item_type">Item Type</label>
           <select id="item_type" name="item_type" className="form-select" value={formData.item_type || 'text'} onChange={handleChange}>
+            <option value="" disabled selected>Select Type</option>
             <option value="text">Text</option>
             <option value="service">Service</option>
             <option value="inventory_item">Inventory Item</option>

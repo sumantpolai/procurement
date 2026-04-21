@@ -57,6 +57,9 @@ export const deleteItem = async (id: string): Promise<{message: string}> => {
   const res = await fetch(`${API_URL}/api/items/${id}`, {
     method: 'DELETE',
   });
-  if (!res.ok) throw new Error('Failed to delete item');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.detail || errorData?.message || 'Failed to delete item');
+  }
   return res.json();
 };

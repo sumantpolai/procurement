@@ -11,7 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function Home() {
     if (!searchTerm.trim()) {
       return loadItems();
     }
-    
+
     try {
       setLoading(true);
       const data = await searchItems(searchTerm);
@@ -55,8 +55,12 @@ export default function Home() {
       await deleteItem(itemToDelete);
       setItemToDelete(null);
       loadItems();
-    } catch (err) {
-      alert("Failed to delete item.");
+    } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('purchase order')) {
+        alert("This item is in purchase order");
+      } else {
+        alert("Failed to delete item.");
+      }
     }
   };
 
@@ -72,10 +76,10 @@ export default function Home() {
 
       <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', width: '100%', gap: '1rem' }}>
-          <input 
-            type="text" 
-            placeholder="Search items by name..." 
-            className="form-input" 
+          <input
+            type="text"
+            placeholder="Search items by name..."
+            className="form-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ flex: 1 }}
@@ -103,8 +107,8 @@ export default function Home() {
         <ItemTable items={items} onDelete={setItemToDelete} />
       )}
 
-      <Modal 
-        isOpen={!!itemToDelete} 
+      <Modal
+        isOpen={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         title="Confirm Deletion"
       >

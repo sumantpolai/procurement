@@ -3,10 +3,9 @@ from asyncio.log import logger
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
+from app.core.config import settings
 
-DATABASE_URL = "postgresql://postgres:2005@localhost:5432/procurementdb"
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
