@@ -6,7 +6,7 @@ services:
     container_name: procurement_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 2003
+      POSTGRES_PASSWORD: Akash@2002
       POSTGRES_DB: procurementdb
     ports:
       - "5432:5432"
