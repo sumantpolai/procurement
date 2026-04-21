@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from uuid import UUID
 from decimal import Decimal
-from app.models.po import POStatus, POType, MatchingType
+from app.enums.po_enums import POStatus, POType, MatchingType
 
 
 class POItemCreate(BaseModel):

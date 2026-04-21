@@ -4,10 +4,11 @@ from typing import Optional
 from uuid import UUID
 from app.database.db import get_db
 from app.schemas.po import POCreate, POResponse, POListResponse, POStatusUpdate, POListItem, POUpdate
-from app.models.po import POStatus
+from app.enums.po_enums import POStatus
 from app.models.user import User
-from app.crud import po as crud_po
+from app.crud.po_crud import POCRUD
 from app.core.logger import setup_logger
+from app.core.timezone import get_current_time
 from app.core.dependencies import (
     po_read_access,
     po_create_update_access,
@@ -34,9 +35,10 @@ async def create_purchase_order(
     Create a new Purchase Order
     """
     try:
-        logger.info(f"API: Create PO request received for vendor: {po_data.vendor_id}")
-        po = crud_po.create_po(db, po_data)
-        logger.info(f"API: PO created successfully with ID: {po.id}")
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Create PO request received for vendor: {po_data.vendor_id}")
+        po = POCRUD.create(db, po_data)
+        logger.info(f"[{current_time}] API: PO created successfully with ID: {po.id}")
         return po
     except ValueError as e:
         logger.error(f"API: Validation error - {str(e)}")
@@ -68,8 +70,9 @@ async def get_purchase_order(
     Get Purchase Order by ID
     """
     try:
-        logger.info(f"API: Get PO request received for ID: {po_id}")
-        po = crud_po.get_po_by_id(db, po_id)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Get PO request received for ID: {po_id}")
+        po = POCRUD.get_by_id(db, po_id)
         
         if not po:
             logger.warning(f"API: PO not found - {po_id}")
@@ -78,7 +81,7 @@ async def get_purchase_order(
                 detail={"error": "PO_NOT_FOUND", "message": "Purchase Order not found"}
             )
         
-        logger.info(f"API: PO retrieved successfully: {po_id}")
+        logger.info(f"[{current_time}] API: PO retrieved successfully: {po_id}")
         return po
     except HTTPException:
         raise
@@ -112,16 +115,17 @@ async def get_all_purchase_orders(
     - Filter by status: /po?status=draft&page=1&limit=10
     """
     try:
-        logger.info(f"API: Get POs request - Status: {status_filter}, Page: {page}, Limit: {limit}")
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Get POs request - Status: {status_filter}, Page: {page}, Limit: {limit}")
         
         skip = (page - 1) * limit
         
         if status_filter:
-            pos = crud_po.get_pos_by_status(db, status_filter, skip, limit)
-            total = crud_po.get_pos_count_by_status(db, status_filter)
+            pos = POCRUD.get_by_status(db, status_filter, skip, limit)
+            total = POCRUD.get_count_by_status(db, status_filter)
         else:
-            pos = crud_po.get_all_pos(db, skip, limit)
-            total = crud_po.get_pos_count(db)
+            pos = POCRUD.get_all(db, skip, limit)
+            total = POCRUD.get_count(db)
         
         data = [
             POListItem(
@@ -142,7 +146,7 @@ async def get_all_purchase_orders(
             for po in pos
         ]
         
-        logger.info(f"API: Retrieved {len(data)} POs")
+        logger.info(f"[{current_time}] API: Retrieved {len(data)} POs")
         return POListResponse(data=data, page=page, limit=limit, total=total)
         
     except Exception as e:
@@ -169,8 +173,9 @@ async def update_purchase_order_status(
     Update Purchase Order status
     """
     try:
-        logger.info(f"API: Update PO status request received - ID: {po_id}, Status: {status_data.status}")
-        po = crud_po.update_po_status(db, po_id, status_data.status)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Update PO status request received - ID: {po_id}, Status: {status_data.status}")
+        po = POCRUD.update_status(db, po_id, status_data.status)
         
         if not po:
             logger.warning(f"API: PO not found for status update - {po_id}")
@@ -179,7 +184,7 @@ async def update_purchase_order_status(
                 detail={"error": "PO_NOT_FOUND", "message": "Purchase Order not found"}
             )
         
-        logger.info(f"API: PO status updated successfully: {po_id} -> {status_data.status}")
+        logger.info(f"[{current_time}] API: PO status updated successfully: {po_id} -> {status_data.status}")
         return {"message": "PO status updated successfully"}
         
     except HTTPException:
@@ -197,7 +202,7 @@ async def update_purchase_order_status(
     response_model=POResponse,
     status_code=status.HTTP_200_OK,
     summary="Search Purchase Order by PO Number",
-    description="Search for a specific Purchase Order by its PO number (e.g., PO-001)"
+    description="Search for a specific Purchase Order by its PO number"
 )
 async def search_purchase_order(
     po_number: str,
@@ -208,8 +213,9 @@ async def search_purchase_order(
     Search Purchase Order by PO Number
     """
     try:
-        logger.info(f"API: Search PO request received for number: {po_number}")
-        po = crud_po.search_po_by_number(db, po_number)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Search PO request received for number: {po_number}")
+        po = POCRUD.search_by_number(db, po_number)
         
         if not po:
             logger.warning(f"API: PO not found with number - {po_number}")
@@ -218,7 +224,7 @@ async def search_purchase_order(
                 detail={"error": "PO_NOT_FOUND", "message": f"Purchase Order with number {po_number} not found"}
             )
         
-        logger.info(f"API: PO retrieved successfully: {po_number}")
+        logger.info(f"[{current_time}] API: PO retrieved successfully: {po_number}")
         return po
     except HTTPException:
         raise
@@ -249,8 +255,9 @@ async def update_purchase_order(
     Note: Only POs with DRAFT status can be edited
     """
     try:
-        logger.info(f"API: Update PO request received for ID: {po_id}")
-        po = crud_po.update_po(db, po_id, po_data)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Update PO request received for ID: {po_id}")
+        po = POCRUD.update(db, po_id, po_data)
         
         if not po:
             logger.warning(f"API: PO not found - {po_id}")
@@ -259,7 +266,7 @@ async def update_purchase_order(
                 detail={"error": "PO_NOT_FOUND", "message": "Purchase Order not found"}
             )
         
-        logger.info(f"API: PO updated successfully: {po_id}")
+        logger.info(f"[{current_time}] API: PO updated successfully: {po_id}")
         return po
         
     except ValueError as e:

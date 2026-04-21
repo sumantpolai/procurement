@@ -4,10 +4,11 @@ from typing import Optional
 from uuid import UUID
 from app.database.db import get_db
 from app.schemas.pr import PRCreate, PRResponse, PRListResponse, PRStatusUpdate, PRListItem, PRUpdate
-from app.models.pr import PRStatus
+from app.enums.pr_enums import PRStatus
 from app.models.user import User
-from app.crud import pr as crud_pr
+from app.crud.pr_crud import PRCRUD
 from app.core.logger import setup_logger
+from app.core.timezone import get_current_time
 from app.core.dependencies import (
     pr_read_access,
     pr_create_update_access,
@@ -37,9 +38,10 @@ async def create_purchase_request(
     - **items**: List of items with item_id and quantity (required, min 1 item)
     """
     try:
-        logger.info(f"API: Create PR request received for user: {pr_data.requested_by}")
-        pr = crud_pr.create_pr(db, pr_data)
-        logger.info(f"API: PR created successfully with ID: {pr.id}")
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Create PR request received for user: {pr_data.requested_by}")
+        pr = PRCRUD.create(db, pr_data)
+        logger.info(f"[{current_time}] API: PR created successfully with ID: {pr.id}")
         return pr
     except ValueError as e:
         logger.error(f"API: Validation error - {str(e)}")
@@ -73,8 +75,9 @@ async def get_purchase_request(
     - **pr_id**: UUID of the Purchase Request
     """
     try:
-        logger.info(f"API: Get PR request received for ID: {pr_id}")
-        pr = crud_pr.get_pr_by_id(db, pr_id)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Get PR request received for ID: {pr_id}")
+        pr = PRCRUD.get_by_id(db, pr_id)
         
         if not pr:
             logger.warning(f"API: PR not found - {pr_id}")
@@ -83,7 +86,7 @@ async def get_purchase_request(
                 detail={"error": "PR_NOT_FOUND", "message": "Purchase Request not found"}
             )
         
-        logger.info(f"API: PR retrieved successfully: {pr_id}")
+        logger.info(f"[{current_time}] API: PR retrieved successfully: {pr_id}")
         return pr
     except HTTPException:
         raise
@@ -121,16 +124,17 @@ async def get_all_purchase_requests(
     - Filter by status: /pr?status=draft&page=1&limit=10
     """
     try:
-        logger.info(f"API: Get PRs request - Status: {status_filter}, Page: {page}, Limit: {limit}")
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Get PRs request - Status: {status_filter}, Page: {page}, Limit: {limit}")
         
         skip = (page - 1) * limit
         
         if status_filter:
-            prs = crud_pr.get_prs_by_status(db, status_filter, skip, limit)
-            total = crud_pr.get_prs_count_by_status(db, status_filter)
+            prs = PRCRUD.get_by_status(db, status_filter, skip, limit)
+            total = PRCRUD.get_count_by_status(db, status_filter)
         else:
-            prs = crud_pr.get_all_prs(db, skip, limit)
-            total = crud_pr.get_prs_count(db)
+            prs = PRCRUD.get_all(db, skip, limit)
+            total = PRCRUD.get_count(db)
         
         data = [
             PRListItem(
@@ -145,7 +149,7 @@ async def get_all_purchase_requests(
             for pr in prs
         ]
         
-        logger.info(f"API: Retrieved {len(data)} PRs")
+        logger.info(f"[{current_time}] API: Retrieved {len(data)} PRs")
         return PRListResponse(data=data, page=page, limit=limit, total=total)
         
     except Exception as e:
@@ -175,8 +179,9 @@ async def update_purchase_request_status(
     - **status**: New status (draft, submitted, approved, rejected)
     """
     try:
-        logger.info(f"API: Update PR status request received - ID: {pr_id}, Status: {status_data.status}")
-        pr = crud_pr.update_pr_status(db, pr_id, status_data.status)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Update PR status request received - ID: {pr_id}, Status: {status_data.status}")
+        pr = PRCRUD.update_status(db, pr_id, status_data.status)
         
         if not pr:
             logger.warning(f"API: PR not found for status update - {pr_id}")
@@ -185,7 +190,7 @@ async def update_purchase_request_status(
                 detail={"error": "PR_NOT_FOUND", "message": "Purchase Request not found"}
             )
         
-        logger.info(f"API: PR status updated successfully: {pr_id} -> {status_data.status}")
+        logger.info(f"[{current_time}] API: PR status updated successfully: {pr_id} -> {status_data.status}")
         return {"message": "PR status updated successfully"}
         
     except HTTPException:
@@ -198,13 +203,12 @@ async def update_purchase_request_status(
         )
 
 
-
 @router.get(
     "/search/{pr_number}",
     response_model=PRListResponse,
     status_code=status.HTTP_200_OK,
     summary="Search Purchase Requests by PR Number",
-    description="Search for Purchase Requests by PR number with partial matching (e.g., searching 'PR' returns PR-001, PR-002, etc.)"
+    description="Search for Purchase Requests by PR number with partial matching"
 )
 async def search_purchase_request(
     pr_number: str,
@@ -215,28 +219,15 @@ async def search_purchase_request(
 ):
     """
     Search Purchase Requests by PR Number with partial matching
-    
-    - **pr_number**: Search pattern (e.g., 'PR', '001', 'PR-0')
-    - **page**: Page number (default: 1)
-    - **limit**: Records per page (default: 10)
-    
-    Examples:
-    - Search 'PR' returns: PR-001, PR-002, PR-003, etc.
-    - Search '001' returns: PR-001
-    - Search 'item' returns: item-2, item-3, item-4
     """
     try:
-        logger.info(f"API: Search PR request received for pattern: {pr_number}")
-        prs = crud_pr.search_pr_by_number(db, pr_number)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Search PR request received for pattern: {pr_number}")
+        pr = PRCRUD.search_by_number(db, pr_number)
         
-        if not prs:
+        if not pr:
             logger.warning(f"API: No PRs found matching pattern - {pr_number}")
             return PRListResponse(data=[], page=page, limit=limit, total=0)
-        
-        # Apply pagination
-        total = len(prs)
-        skip = (page - 1) * limit
-        prs_paginated = prs[skip:skip + limit]
         
         data = [
             PRListItem(
@@ -248,11 +239,10 @@ async def search_purchase_request(
                 created_at=pr.created_at,
                 updated_at=pr.updated_at
             )
-            for pr in prs_paginated
         ]
         
-        logger.info(f"API: Found {total} PRs matching pattern '{pr_number}'")
-        return PRListResponse(data=data, page=page, limit=limit, total=total)
+        logger.info(f"[{current_time}] API: Found PR matching pattern '{pr_number}'")
+        return PRListResponse(data=data, page=page, limit=limit, total=1)
         
     except Exception as e:
         logger.error(f"API: Failed to search PR - {str(e)}")
@@ -260,7 +250,6 @@ async def search_purchase_request(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": "DATABASE_ERROR", "message": "Failed to search Purchase Request"}
         )
-
 
 
 @router.put(
@@ -285,8 +274,9 @@ async def update_purchase_request(
     Note: Only PRs with DRAFT status can be edited
     """
     try:
-        logger.info(f"API: Update PR request received for ID: {pr_id}")
-        pr = crud_pr.update_pr(db, pr_id, pr_data)
+        current_time = get_current_time()
+        logger.info(f"[{current_time}] API: Update PR request received for ID: {pr_id}")
+        pr = PRCRUD.update(db, pr_id, pr_data)
         
         if not pr:
             logger.warning(f"API: PR not found - {pr_id}")
@@ -295,7 +285,7 @@ async def update_purchase_request(
                 detail={"error": "PR_NOT_FOUND", "message": "Purchase Request not found"}
             )
         
-        logger.info(f"API: PR updated successfully: {pr_id}")
+        logger.info(f"[{current_time}] API: PR updated successfully: {pr_id}")
         return pr
         
     except ValueError as e:
