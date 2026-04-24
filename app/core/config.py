@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH_DEFAULT_ROLE: str = "store_staff"
     GOOGLE_OAUTH_STATE_EXPIRE_MINUTES: int = 10
     
+# Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+
     class Config:
         env_file = ".env"
         

@@ -18,5 +18,7 @@ class User(Base):
     oauth_provider = Column(String, nullable=True, index=True)
     oauth_subject = Column(String, unique=True, nullable=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    google_id = Column(String, unique=True, nullable=True, index=True)  # For Google OAuth
+    oauth_provider = Column(String, nullable=True)  # 'google', 'github', etc.
     created_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), nullable=False)
     updated_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), onupdate=lambda: get_current_time().replace(tzinfo=None))
