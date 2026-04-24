@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import VendorTable from "@/components/VendorTable";
 import { fetchVendors, searchVendors, deleteVendor, Vendor } from "@/services/api";
 import Modal from "@/components/Modal";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -18,30 +21,35 @@ export default function VendorsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    } else if (user) {
-      loadVendors();
-    }
-  }, [user, authLoading, router]);
-
-  const loadVendors = async () => {
+  const loadVendors = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await fetchVendors(1, 50); // Get first 50
-      setVendors(data); // Backend returns a direct array based on api.ts
+      const data = await fetchVendors(1, 50);
+      setVendors(data);
       setError("");
-    } catch (err: any) {
-      if (err.message === "Failed to fetch user") {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, "Failed to load vendors.");
+      if (message === "Failed to fetch user") {
          router.push('/login');
       } else {
-        setError("Failed to load vendors. Is the backend running?");
+        setError(message);
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    } else if (user) {
+      const timeoutId = window.setTimeout(() => {
+        void loadVendors();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [user, authLoading, router, loadVendors]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +62,8 @@ export default function VendorsPage() {
       const data = await searchVendors(searchTerm);
       setVendors(data);
       setError("");
-    } catch (err) {
-      setError("Search failed.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Search failed."));
     } finally {
       setLoading(false);
     }
@@ -67,8 +75,8 @@ export default function VendorsPage() {
       await deleteVendor(vendorToDelete);
       setVendorToDelete(null);
       loadVendors();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete vendor.");
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, "Failed to delete vendor."));
     }
   };
 

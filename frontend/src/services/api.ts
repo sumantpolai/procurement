@@ -5,6 +5,16 @@ const getAuthHeaders = () => {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
+const getErrorMessage = async (res: Response, fallback: string) => {
+  const errorData = await res.json().catch(() => null);
+
+  if (typeof errorData?.detail === 'string') return errorData.detail;
+  if (typeof errorData?.detail?.message === 'string') return errorData.detail.message;
+  if (typeof errorData?.message === 'string') return errorData.message;
+
+  return fallback;
+};
+
 // ========================
 // AUTH
 // ========================
@@ -21,7 +31,7 @@ export const login = async (email: string, password: string) => {
   return res.json();
 };
 
-export const register = async (userData: any) => {
+export const register = async (userData: Record<string, unknown>) => {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -83,52 +93,49 @@ export interface PaginatedResponse<T> {
 }
 
 export const fetchItems = async (page = 1, limit = 10): Promise<PaginatedResponse<Item>> => {
-  const res = await fetch(`${API_URL}/api/items/?page=${page}&limit=${limit}`, {
+  const res = await fetch(`${API_URL}/items/?page=${page}&limit=${limit}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to fetch items');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch items'));
   return res.json();
 };
 
 export const searchItems = async (name: string): Promise<Item[]> => {
-  const res = await fetch(`${API_URL}/api/items/search/?name=${encodeURIComponent(name)}`, {
+  const res = await fetch(`${API_URL}/items/search/?name=${encodeURIComponent(name)}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to search items');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to search items'));
   return res.json();
 };
 
 export const createItem = async (itemData: Partial<Item>): Promise<Item> => {
-  const res = await fetch(`${API_URL}/api/items/`, {
+  const res = await fetch(`${API_URL}/items/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(itemData),
   });
-  if (!res.ok) throw new Error('Failed to create item');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create item'));
   return res.json();
 };
 
 export const updateItem = async (id: string, itemData: Partial<Item>): Promise<Item> => {
-  const res = await fetch(`${API_URL}/api/items/${id}`, {
+  const res = await fetch(`${API_URL}/items/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(itemData),
   });
-  if (!res.ok) throw new Error('Failed to update item');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update item'));
   return res.json();
 };
 
 export const deleteItem = async (id: string): Promise<{message: string}> => {
-  const res = await fetch(`${API_URL}/api/items/${id}`, {
+  const res = await fetch(`${API_URL}/items/${id}`, {
     method: 'DELETE',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.detail || errorData?.message || 'Failed to delete item');
-  }
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to delete item'));
   return res.json();
 };
 
@@ -153,53 +160,106 @@ export interface Vendor {
   created_at: string;
 }
 
+export interface VendorPayload {
+  name: string;
+  email: string;
+  phone: string;
+  pan_no: string;
+  gst_no?: string | null;
+  bank_name: string;
+  account_number: string;
+  ifsc_code: string;
+  branch: string;
+  address: string;
+}
+
+export type VendorUpdatePayload = Partial<VendorPayload>;
+
+export interface VendorStatusUpdatePayload {
+  status: string;
+  approved_by?: string | null;
+  rejected_reason?: string | null;
+}
+
+const normalizeVendorPayload = (
+  vendorData: Partial<Vendor> & Partial<VendorPayload> & { bank_details?: Vendor['bank_details'] }
+): VendorUpdatePayload => {
+  const bankDetails = vendorData.bank_details;
+
+  return {
+    name: vendorData.name,
+    email: vendorData.email,
+    phone: vendorData.phone,
+    pan_no: vendorData.pan_no,
+    gst_no: vendorData.gst_no,
+    bank_name: vendorData.bank_name ?? bankDetails?.bank_name,
+    account_number: vendorData.account_number ?? bankDetails?.account_number,
+    ifsc_code: vendorData.ifsc_code ?? bankDetails?.ifsc_code,
+    branch: vendorData.branch ?? bankDetails?.branch,
+    address: vendorData.address ?? bankDetails?.address,
+  };
+};
+
 export const fetchVendors = async (page = 1, limit = 10): Promise<Vendor[]> => {
-  const res = await fetch(`${API_URL}/api/vendors/?page=${page}&limit=${limit}`, {
+  const res = await fetch(`${API_URL}/vendors/?page=${page}&limit=${limit}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to fetch vendors');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch vendors'));
   return res.json();
 };
 
 export const searchVendors = async (search: string): Promise<Vendor[]> => {
-  const res = await fetch(`${API_URL}/api/vendors/search?search=${encodeURIComponent(search)}`, {
+  const res = await fetch(`${API_URL}/vendors/search?search=${encodeURIComponent(search)}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to search vendors');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to search vendors'));
   return res.json();
 };
 
-export const createVendor = async (vendorData: Partial<Vendor>): Promise<Vendor> => {
-  const res = await fetch(`${API_URL}/api/vendors/`, {
+export const createVendor = async (vendorData: VendorPayload): Promise<Vendor> => {
+  const res = await fetch(`${API_URL}/vendors/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(vendorData),
+    body: JSON.stringify(normalizeVendorPayload(vendorData)),
   });
-  if (!res.ok) throw new Error('Failed to create vendor');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create vendor'));
   return res.json();
 };
 
-export const updateVendor = async (id: string, vendorData: Partial<Vendor>): Promise<Vendor> => {
-  const res = await fetch(`${API_URL}/api/vendors/${id}`, {
+export const updateVendor = async (
+  id: string,
+  vendorData: VendorUpdatePayload | Partial<Vendor>
+): Promise<Vendor> => {
+  const res = await fetch(`${API_URL}/vendors/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(vendorData),
+    body: JSON.stringify(normalizeVendorPayload(vendorData)),
   });
-  if (!res.ok) throw new Error('Failed to update vendor');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update vendor'));
   return res.json();
 };
 
 export const deleteVendor = async (id: string): Promise<{message: string}> => {
-  const res = await fetch(`${API_URL}/api/vendors/${id}`, {
+  const res = await fetch(`${API_URL}/vendors/${id}`, {
     method: 'DELETE',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.detail || errorData?.message || 'Failed to delete vendor');
-  }
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to delete vendor'));
+  return res.json();
+};
+
+export const updateVendorStatus = async (
+  id: string,
+  statusData: VendorStatusUpdatePayload
+): Promise<{message: string}> => {
+  const res = await fetch(`${API_URL}/vendors/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(statusData),
+  });
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update vendor status'));
   return res.json();
 };
 
@@ -223,34 +283,31 @@ export interface PR {
 }
 
 export const fetchPRs = async (page = 1, limit = 10): Promise<PaginatedResponse<PR>> => {
-  const res = await fetch(`${API_URL}/api/prs/?page=${page}&limit=${limit}`, {
+  const res = await fetch(`${API_URL}/prs?page=${page}&limit=${limit}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to fetch PRs');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch PRs'));
   return res.json();
 };
 
-export const createPR = async (prData: any): Promise<PR> => {
-  const res = await fetch(`${API_URL}/api/prs/`, {
+export const createPR = async (prData: Record<string, unknown>): Promise<PR> => {
+  const res = await fetch(`${API_URL}/prs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(prData),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(err?.detail || 'Failed to create PR');
-  }
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create PR'));
   return res.json();
 };
 
 export const updatePRStatus = async (id: string, status: string): Promise<{message: string}> => {
-  const res = await fetch(`${API_URL}/api/prs/${id}/status`, {
+  const res = await fetch(`${API_URL}/prs/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error('Failed to update PR status');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update PR status'));
   return res.json();
 };
 
@@ -284,33 +341,30 @@ export interface PO {
 }
 
 export const fetchPOs = async (page = 1, limit = 10): Promise<PaginatedResponse<PO>> => {
-  const res = await fetch(`${API_URL}/api/pos/?page=${page}&limit=${limit}`, {
+  const res = await fetch(`${API_URL}/pos?page=${page}&limit=${limit}`, {
     cache: 'no-store',
     headers: { ...getAuthHeaders() }
   });
-  if (!res.ok) throw new Error('Failed to fetch POs');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch POs'));
   return res.json();
 };
 
-export const createPO = async (poData: any): Promise<PO> => {
-  const res = await fetch(`${API_URL}/api/pos/`, {
+export const createPO = async (poData: Record<string, unknown>): Promise<PO> => {
+  const res = await fetch(`${API_URL}/pos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(poData),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(err?.detail || 'Failed to create PO');
-  }
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create PO'));
   return res.json();
 };
 
 export const updatePOStatus = async (id: string, status: string): Promise<{message: string}> => {
-  const res = await fetch(`${API_URL}/api/pos/${id}/status`, {
+  const res = await fetch(`${API_URL}/pos/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error('Failed to update PO status');
+  if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update PO status'));
   return res.json();
 };

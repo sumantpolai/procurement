@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { createVendor } from "@/services/api";
+import { useEffect, useState } from "react";
+import { createVendor, VendorPayload } from "@/services/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
 export default function NewVendorPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -26,6 +29,12 @@ export default function NewVendorPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [authLoading, user, router]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -41,26 +50,31 @@ export default function NewVendorPage() {
     setLoading(true);
 
     try {
-      await createVendor({
+      const payload: VendorPayload = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         pan_no: formData.pan_no,
         gst_no: formData.gst_no || null,
-        bank_details: {
-          bank_name: formData.bank_name,
-          account_number: formData.account_number,
-          ifsc_code: formData.ifsc_code,
-          branch: formData.branch,
-          address: formData.address
-        }
-      });
+        bank_name: formData.bank_name,
+        account_number: formData.account_number,
+        ifsc_code: formData.ifsc_code,
+        branch: formData.branch,
+        address: formData.address
+      };
+
+      await createVendor(payload);
       router.push("/vendors");
-    } catch (err: any) {
-      setError(err.message || "Failed to create vendor.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to create vendor."));
+    } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading || !user) {
+    return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading...</div>;
+  }
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
