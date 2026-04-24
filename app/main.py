@@ -56,10 +56,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Session middleware for OAuth
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY
+    secret_key=settings.SECRET_KEY,
+    same_site="lax",      
+    https_only=False     
 )
 
 # Include routes

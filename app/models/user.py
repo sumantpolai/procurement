@@ -12,7 +12,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
-    hashed_password = Column(String, nullable=True
+    hashed_password = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     role = Column(SQLEnum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

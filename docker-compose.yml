@@ -25,8 +25,8 @@ services:
     container_name: procurement_app
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: "postgresql://postgres:2003@db:5432/procurementdb"
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -34,5 +34,6 @@ services:
       - ./app:/app/app
       - ./logs:/app/logs
 
+# 👇 THIS MUST BE OUTSIDE services
 volumes:
   postgres_data:

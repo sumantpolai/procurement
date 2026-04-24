@@ -5,15 +5,17 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    TIMEZONE: str = "Asia/Kolkata"  # Indian Standard Time
+    TIMEZONE: str = "Asia/Kolkata"
+
     
-# Google OAuth
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+
+    GOOGLE_CLIENT_ID: str 
+    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_REDIRECT_URI: str 
+    
 
     class Config:
         env_file = ".env"
-        
+
 
 settings = Settings()
