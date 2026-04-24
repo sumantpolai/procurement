@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Procurement Item Management",
-  description: "A premium item management portal",
+  title: "Procurement Portal",
+  description: "A premium procurement management portal",
 };
 
 export default function RootLayout({
@@ -15,10 +16,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <Navbar />
-        <main className="main-content container">
-          {children}
-        </main>
+        <AuthProvider>
+          <div className="app-layout">
+            <Sidebar />
+            <main className="main-content">
+              <div className="container">
+                {children}
+              </div>
+            </main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

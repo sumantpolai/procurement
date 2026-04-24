@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ItemTable from "@/components/ItemTable";
-import { fetchItems, searchItems, deleteItem, Item } from "@/services/api";
+import VendorTable from "@/components/VendorTable";
+import { fetchVendors, searchVendors, deleteVendor, Vendor } from "@/services/api";
 import Modal from "@/components/Modal";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
-export default function Home() {
-  const [items, setItems] = useState<Item[]>([]);
+export default function VendorsPage() {
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-
+  const [vendorToDelete, setVendorToDelete] = useState<string | null>(null);
+  
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -22,21 +22,21 @@ export default function Home() {
     if (!authLoading && !user) {
       router.push('/login');
     } else if (user) {
-      loadItems();
+      loadVendors();
     }
   }, [user, authLoading, router]);
 
-  const loadItems = async () => {
+  const loadVendors = async () => {
     try {
       setLoading(true);
-      const data = await fetchItems(1, 50); // Get first 50 for simplicity
-      setItems(data.data);
+      const data = await fetchVendors(1, 50); // Get first 50
+      setVendors(data); // Backend returns a direct array based on api.ts
       setError("");
     } catch (err: any) {
       if (err.message === "Failed to fetch user") {
-        router.push('/login');
+         router.push('/login');
       } else {
-        setError("Failed to load items. Is the backend running?");
+        setError("Failed to load vendors. Is the backend running?");
       }
     } finally {
       setLoading(false);
@@ -46,13 +46,13 @@ export default function Home() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) {
-      return loadItems();
+      return loadVendors();
     }
 
     try {
       setLoading(true);
-      const data = await searchItems(searchTerm);
-      setItems(data);
+      const data = await searchVendors(searchTerm);
+      setVendors(data);
       setError("");
     } catch (err) {
       setError("Search failed.");
@@ -62,17 +62,13 @@ export default function Home() {
   };
 
   const confirmDelete = async () => {
-    if (!itemToDelete) return;
+    if (!vendorToDelete) return;
     try {
-      await deleteItem(itemToDelete);
-      setItemToDelete(null);
-      loadItems();
+      await deleteVendor(vendorToDelete);
+      setVendorToDelete(null);
+      loadVendors();
     } catch (err: any) {
-      if (err.message && err.message.toLowerCase().includes('purchase order')) {
-        alert("This item is in purchase order");
-      } else {
-        alert("Failed to delete item.");
-      }
+      alert(err.message || "Failed to delete vendor.");
     }
   };
 
@@ -84,17 +80,17 @@ export default function Home() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h1 style={{ marginBottom: '0.5rem' }}>Items Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Manage all your procurement items from one place.</p>
+          <h1 style={{ marginBottom: '0.5rem' }}>Vendors Directory</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Manage all your suppliers and their details.</p>
         </div>
-        <Link href="/new" className="btn btn-primary">+ Create Item</Link>
+        <Link href="/vendors/new" className="btn btn-primary">+ Register Vendor</Link>
       </div>
 
       <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', width: '100%', gap: '1rem' }}>
           <input
             type="text"
-            placeholder="Search items by name..."
+            placeholder="Search vendors by name or email..."
             className="form-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -102,7 +98,7 @@ export default function Home() {
           />
           <button type="submit" className="btn btn-outline">Search</button>
           {searchTerm && (
-            <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); loadItems(); }}>
+            <button type="button" className="btn btn-outline" onClick={() => { setSearchTerm(''); loadVendors(); }}>
               Clear
             </button>
           )}
@@ -117,21 +113,21 @@ export default function Home() {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-          Loading items...
+          Loading vendors...
         </div>
       ) : (
-        <ItemTable items={items} onDelete={setItemToDelete} />
+        <VendorTable vendors={vendors} onDelete={setVendorToDelete} />
       )}
 
       <Modal
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
+        isOpen={!!vendorToDelete}
+        onClose={() => setVendorToDelete(null)}
         title="Confirm Deletion"
       >
-        <p style={{ marginBottom: '1.5rem' }}>Are you sure you want to delete this item? This action cannot be undone.</p>
+        <p style={{ marginBottom: '1.5rem' }}>Are you sure you want to delete this vendor? This action cannot be undone.</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => setItemToDelete(null)}>Cancel</button>
-          <button className="btn btn-danger" onClick={confirmDelete}>Delete Item</button>
+          <button className="btn btn-outline" onClick={() => setVendorToDelete(null)}>Cancel</button>
+          <button className="btn btn-danger" onClick={confirmDelete}>Delete Vendor</button>
         </div>
       </Modal>
     </div>

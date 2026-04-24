@@ -1,16 +1,9 @@
 import uuid
-from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.dialects.postgresql import UUID
-import enum
 from app.database.db import Base
-
-
-class PRStatus(str, enum.Enum):
-    DRAFT = "draft"
-    SUBMITTED = "submitted"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+from app.enums.pr_enums import PRStatus
+from app.core.timezone import get_current_time
 
 
 class PurchaseRequest(Base):
@@ -21,5 +14,5 @@ class PurchaseRequest(Base):
     requested_by = Column(String, nullable=False)
     status = Column(SQLEnum(PRStatus), nullable=False, default=PRStatus.DRAFT)
     items = Column(JSON, nullable=False)  # Store items as JSON array
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), nullable=False)
+    updated_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), onupdate=lambda: get_current_time().replace(tzinfo=None))

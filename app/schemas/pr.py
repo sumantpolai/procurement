@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
-from app.models.pr import PRStatus
+from app.enums.pr_enums import PRStatus
 
 
 class PRItemCreate(BaseModel):

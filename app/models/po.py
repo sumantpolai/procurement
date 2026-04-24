@@ -2,31 +2,9 @@ import uuid
 from datetime import datetime, date
 from sqlalchemy import Column, String, DateTime, Date, Enum as SQLEnum, JSON, Numeric
 from sqlalchemy.dialects.postgresql import UUID
-import enum
 from app.database.db import Base
-
-
-class POStatus(str, enum.Enum):
-    DRAFT = "draft"
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    PARTIALLY_RECEIVED = "partially_received"
-    RECEIVED = "received"
-    CLOSED = "closed"
-
-
-class POType(str, enum.Enum):
-    STANDARD = "STANDARD"
-    BLANKET = "BLANKET"
-    CONTRACT = "CONTRACT"
-    PLANNED = "PLANNED"
-
-
-class MatchingType(str, enum.Enum):
-    TWO_WAY = "TWO_WAY"
-    THREE_WAY = "THREE_WAY"
-    FOUR_WAY = "FOUR_WAY"
+from app.enums.po_enums import POStatus, POType, MatchingType
+from app.core.timezone import get_current_time
 
 
 class PurchaseOrder(Base):
@@ -46,5 +24,5 @@ class PurchaseOrder(Base):
     status = Column(SQLEnum(POStatus), nullable=False, default=POStatus.DRAFT)
     items = Column(JSON, nullable=False)  # Store items as JSON array
     total_amount = Column(Numeric(15, 2), nullable=True)  # Calculated total
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), nullable=False)
+    updated_at = Column(DateTime, default=lambda: get_current_time().replace(tzinfo=None), onupdate=lambda: get_current_time().replace(tzinfo=None))
